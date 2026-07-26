@@ -15,7 +15,6 @@ const DEFAULT_CONFIG = Object.freeze({
   startupTimeoutSeconds: 45,
   shutdownTimeoutSeconds: 8,
   environment: {
-    TZ: 'Asia/Shanghai',
     GIN_MODE: 'release'
   }
 });

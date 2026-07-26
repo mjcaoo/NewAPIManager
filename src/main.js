@@ -8,6 +8,7 @@ const { ConfigStore } = require('./services/config-store');
 const { CoreManager } = require('./services/core-manager');
 const { BackupService } = require('./services/backup-service');
 const { UpdateService } = require('./services/update-service');
+const { formatLocalIso } = require('./utils/time');
 
 app.disableHardwareAcceleration();
 
@@ -126,7 +127,7 @@ function registerIpc() {
     fs.copyFileSync(result.filePaths[0], paths.coreExe);
     fs.writeFileSync(paths.versionFile, `${JSON.stringify({
       tag: 'manual',
-      installedAt: new Date().toISOString(),
+      installedAt: formatLocalIso(),
       source: result.filePaths[0]
     }, null, 2)}\n`, 'utf8');
     if (wasRunning) await coreManager.start();

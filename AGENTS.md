@@ -20,6 +20,7 @@
 - The app writes under `config/`, `core/`, `data/`, `logs/`, `backups/`, and `downloads/`. Treat `config/manager.json`, `config/new-api.env`, core binaries/version metadata, databases, logs, backups, downloads, and `dist/` as runtime/generated state, not source fixtures.
 - The application root must be writable. Packaging is deliberately per-user; changes must not redirect portable data into Electron's temporary extraction directory or assume `Program Files` is writable.
 - `PORT` and `SQLITE_PATH` are always forced by `CoreManager` after merging process, manager, and `config/new-api.env` variables. Do not make the env file authoritative for those two values.
+- Time metadata and manager logs use local ISO timestamps with an explicit UTC offset. The core inherits the Windows timezone unless `TZ` is explicitly set in `config/new-api.env`; legacy `manager.json` `environment.TZ` values are ignored.
 
 ## Lifecycle Constraints
 

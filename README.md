@@ -76,12 +76,14 @@ npm run dist:win
 
 ```dotenv
 MEMORY_CACHE_ENABLED=true
+TZ=Asia/Shanghai
 STREAMING_TIMEOUT=300
 SESSION_SECRET=replace-with-a-long-random-string
 CRYPTO_SECRET=replace-with-a-long-random-string
 ```
 
 `PORT` 与 `SQLITE_PATH` 由管理器覆盖，不应写入该文件。
+默认不设置 `TZ`，核心会使用 Windows 本地时区；如需固定时区，可在该文件中显式设置。
 
 ## 当前限制
 

@@ -7,6 +7,7 @@ const path = require('path');
 const crypto = require('crypto');
 const https = require('https');
 const { selectWindowsAsset, compareVersions } = require('./update-utils');
+const { formatLocalIso } = require('../utils/time');
 
 class UpdateService extends EventEmitter {
   constructor(paths, configStore, coreManager, backupService) {
@@ -105,7 +106,7 @@ class UpdateService extends EventEmitter {
         this.paths.versionFile,
         `${JSON.stringify({
           tag: release.tag,
-          installedAt: new Date().toISOString(),
+          installedAt: formatLocalIso(),
           source: release.asset.url,
           sha256: digest,
           asset: release.asset.name

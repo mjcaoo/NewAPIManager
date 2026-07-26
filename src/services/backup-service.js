@@ -2,10 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-
-function timestampForPath() {
-  return new Date().toISOString().replace(/[:.]/g, '-');
-}
+const { formatLocalIso, timestampForPath } = require('../utils/time');
 
 class BackupService {
   constructor(paths, coreManager, configStore = null) {
@@ -32,7 +29,7 @@ class BackupService {
       }
       fs.writeFileSync(
         path.join(target, 'backup.json'),
-        `${JSON.stringify({ createdAt: new Date().toISOString(), reason }, null, 2)}\n`,
+        `${JSON.stringify({ createdAt: formatLocalIso(), reason }, null, 2)}\n`,
         'utf8'
       );
       return target;

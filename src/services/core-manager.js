@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const net = require('net');
+const { formatLocalIso, formatLocalDate } = require('../utils/time');
 
 const STATES = Object.freeze({
   STOPPED: 'stopped',
@@ -64,20 +65,22 @@ class CoreManager extends EventEmitter {
     await this.assertPortFree(config.host, config.port);
 
     fs.mkdirSync(this.paths.coreLogsDir, { recursive: true });
-    const logName = `new-api-${new Date().toISOString().slice(0, 10)}.log`;
+    const logName = `new-api-${formatLocalDate()}.log`;
     this.logStream = fs.createWriteStream(path.join(this.paths.coreLogsDir, logName), { flags: 'a' });
 
     const envFromFile = this.configStore.readEnvFile();
+    const managerEnvironment = { ...config.environment };
+    delete managerEnvironment.TZ;
     const env = {
       ...process.env,
-      ...config.environment,
+      ...managerEnvironment,
       ...envFromFile,
       PORT: String(config.port),
       SQLITE_PATH: this.paths.sqliteFile
     };
 
     this.expectedStop = false;
-    this.startedAt = new Date().toISOString();
+    this.startedAt = formatLocalIso();
     this.lastExit = null;
     this.setState(STATES.STARTING);
 
@@ -94,7 +97,7 @@ class CoreManager extends EventEmitter {
       this.writeLog('MANAGER', Buffer.from(`启动失败：${error.stack || error.message}\n`));
     });
     this.process.once('exit', (code, signal) => {
-      this.lastExit = { code, signal, at: new Date().toISOString(), expected: this.expectedStop };
+      this.lastExit = { code, signal, at: formatLocalIso(), expected: this.expectedStop };
       this.process = null;
       this.startedAt = null;
       this.logStream?.end();
@@ -145,7 +148,7 @@ class CoreManager extends EventEmitter {
 
   writeLog(channel, chunk) {
     const text = chunk.toString('utf8');
-    const line = `[${new Date().toISOString()}] [${channel}] ${text}`;
+    const line = `[${formatLocalIso()}] [${channel}] ${text}`;
     this.logStream?.write(line);
     this.emit('log', line);
   }
