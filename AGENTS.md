@@ -34,4 +34,5 @@
 
 - Renderer privileges must continue through `contextBridge` and named IPC handlers. When adding a UI operation, update `src/preload.js` and `src/main.js`; do not enable renderer `nodeIntegration` or weaken the CSP/context isolation/sandbox settings.
 - `package.json` packages only `src/**/*`, `package.json`, and `THIRD_PARTY_NOTICE.md`, with `core/` and `config/` copied as `extraFiles`. Add required runtime files to the builder configuration or they will be absent from packaged artifacts.
+- NSIS upgrades delete `$INSTDIR` by default. `build/installer.nsh` moves all writable runtime directories to a sibling before old-version removal and restores them after extraction; keep that list aligned with `src/utils/paths.js`.
 - If distributing a bundled New API binary, preserve the upstream AGPLv3 attribution and obligations documented in `THIRD_PARTY_NOTICE.md`.

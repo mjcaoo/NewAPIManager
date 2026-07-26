@@ -40,7 +40,7 @@
       {
         "from": "config",
         "to": "config",
-        "filter": ["**/*"]
+        "filter": ["manager.example.json", "new-api.env.example"]
       }
     ],
     "win": {
@@ -49,6 +49,7 @@
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "nsis": {
+      "include": "build/installer.nsh",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,

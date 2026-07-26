@@ -70,6 +70,8 @@ npm run dist:win
 
 安装包配置为 `perMachine: false`。建议安装到默认的 `%LOCALAPPDATA%\Programs\New API Manager`，不要安装到普通用户不可写的 `C:\Program Files`。便携版会使用其自身所在目录；代码通过 `PORTABLE_EXECUTABLE_DIR` 避免把数据写到临时解压目录。
 
+安装新版本覆盖升级时，安装器会保留现有的 `config/`、`core/`、`data/`、`logs/`、`backups/` 和 `downloads/`。普通卸载仍会删除安装目录中的这些运行数据，请在卸载前按需备份。
+
 ## 配置 New API 环境变量
 
 编辑 `config/new-api.env`，每行一个 `KEY=VALUE`。例如：
