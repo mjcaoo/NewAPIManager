@@ -1,0 +1,12 @@
+node_modules/
+dist/
+config/manager.json*
+config/new-api.env
+core/current/new-api.exe*
+core/current/version.json
+core/versions/*
+data/*
+logs/*
+backups/*
+downloads/*
+*.part

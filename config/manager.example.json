@@ -1,0 +1,16 @@
+{
+  "port": 3000,
+  "host": "127.0.0.1",
+  "autoStartCore": true,
+  "startMinimized": false,
+  "runManagerAtLogin": false,
+  "includePrereleases": true,
+  "githubRepository": "QuantumNous/new-api",
+  "healthCheckPath": "/",
+  "startupTimeoutSeconds": 45,
+  "shutdownTimeoutSeconds": 8,
+  "environment": {
+    "TZ": "Asia/Shanghai",
+    "GIN_MODE": "release"
+  }
+}
