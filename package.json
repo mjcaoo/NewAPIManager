@@ -3,7 +3,7 @@
   "version": "0.1.2",
   "description": "Windows tray manager for the New API core service",
   "main": "src/main.js",
-  "author": "WZ",
+  "author": "mjcaoo",
   "license": "MIT",
   "private": true,
   "scripts": {
