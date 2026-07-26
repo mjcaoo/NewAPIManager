@@ -12,6 +12,7 @@
 - Run all tests with `npm test`; focus one test with `node --test --test-name-pattern="<pattern>" tests/update-utils.test.js`.
 - Use `npm start` for normal execution and `npm run dev` only when `NODE_ENV=development` is needed.
 - Build an unpacked Windows app with `npm run dist:dir`; build NSIS and portable artifacts with `npm run dist:win`.
+- Packaging scripts pass `--publish never`; release publication belongs exclusively to `.github/workflows/release.yml`, not electron-builder's tag detection.
 - Before packaging, run `npm run check` then `npm test`.
 - GitHub releases are tag-driven by `.github/workflows/release.yml`. A pushed `vX.Y.Z` tag must match `package.json`; the Windows job builds and publishes NSIS, portable, blockmap, and SHA-256 checksum artifacts with `GITHUB_TOKEN`.
 
