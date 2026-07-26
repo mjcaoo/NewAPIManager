@@ -11,6 +11,13 @@ const elements = Object.fromEntries([
 let snapshot = null;
 let currentRelease = null;
 let toastTimer = null;
+let pendingLogs = [];
+let logFlushTimer = null;
+let logTextNode = null;
+
+const MAX_LOG_CHARS = 200000;
+const RETAINED_LOG_CHARS = 150000;
+const LOG_FLUSH_INTERVAL_MS = 100;
 
 const stateLabels = {
   stopped: '已停止',
@@ -78,6 +85,41 @@ async function action(button, task, successMessage) {
   }
 }
 
+function flushLogs() {
+  logFlushTimer = null;
+  if (!pendingLogs.length) return;
+
+  if (!logTextNode) {
+    elements.logOutput.textContent = '';
+    logTextNode = document.createTextNode('');
+    elements.logOutput.appendChild(logTextNode);
+  }
+
+  logTextNode.appendData(pendingLogs.join(''));
+  pendingLogs = [];
+
+  if (logTextNode.length > MAX_LOG_CHARS) {
+    logTextNode.deleteData(0, logTextNode.length - RETAINED_LOG_CHARS);
+  }
+
+  elements.logOutput.scrollTop = elements.logOutput.scrollHeight;
+}
+
+function queueLog(line) {
+  pendingLogs.push(line);
+  if (!logFlushTimer) logFlushTimer = setTimeout(flushLogs, LOG_FLUSH_INTERVAL_MS);
+}
+
+function clearLogs() {
+  pendingLogs = [];
+  if (logFlushTimer) {
+    clearTimeout(logFlushTimer);
+    logFlushTimer = null;
+  }
+  elements.logOutput.textContent = '';
+  logTextNode = null;
+}
+
 async function initialize() {
   renderSnapshot(await window.manager.getSnapshot());
 
@@ -132,17 +174,10 @@ async function initialize() {
   document.querySelectorAll('[data-open]').forEach(button => {
     button.addEventListener('click', () => window.manager.openPath(button.dataset.open).catch(error => showToast(error.message, true)));
   });
-  elements.clearLogsButton.addEventListener('click', () => { elements.logOutput.textContent = ''; });
+  elements.clearLogsButton.addEventListener('click', clearLogs);
 
   window.manager.onStatus(renderStatus);
-  window.manager.onLog(line => {
-    if (elements.logOutput.textContent === '等待核心输出…') elements.logOutput.textContent = '';
-    elements.logOutput.textContent += line;
-    if (elements.logOutput.textContent.length > 200000) {
-      elements.logOutput.textContent = elements.logOutput.textContent.slice(-150000);
-    }
-    elements.logOutput.scrollTop = elements.logOutput.scrollHeight;
-  });
+  window.manager.onLog(queueLog);
   window.manager.onUpdateProgress(progress => {
     if (!progress) {
       elements.progressWrap.classList.add('hidden');

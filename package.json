@@ -1,6 +1,6 @@
 {
   "name": "new-api-manager",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Windows tray manager for the New API core service",
   "main": "src/main.js",
   "author": "WZ",

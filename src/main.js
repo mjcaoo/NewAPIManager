@@ -9,6 +9,8 @@ const { CoreManager } = require('./services/core-manager');
 const { BackupService } = require('./services/backup-service');
 const { UpdateService } = require('./services/update-service');
 
+app.disableHardwareAcceleration();
+
 let mainWindow = null;
 let tray = null;
 let paths;
@@ -48,9 +50,10 @@ function createWindow() {
   mainWindow.on('close', event => {
     if (!isQuitting) {
       event.preventDefault();
-      mainWindow.hide();
+      mainWindow.destroy();
     }
   });
+  mainWindow.on('closed', () => { mainWindow = null; });
 }
 
 function showWindow() {
@@ -211,7 +214,7 @@ async function initialize() {
 
   registerIpc();
   createTray();
-  createWindow();
+  if (!configStore.get().startMinimized) createWindow();
 
   app.setLoginItemSettings({
     openAtLogin: configStore.get().runManagerAtLogin,
