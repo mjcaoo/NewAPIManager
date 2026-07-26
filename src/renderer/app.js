@@ -3,7 +3,7 @@
 const elements = Object.fromEntries([
   'statusBadge', 'serviceUrl', 'serviceMeta', 'startButton', 'stopButton', 'restartButton',
   'consoleButton', 'importButton', 'checkUpdateButton', 'installUpdateButton', 'updateInfo',
-  'progressWrap', 'progress', 'progressText', 'backupButton', 'portInput', 'autoStartCore',
+  'progressWrap', 'progress', 'progressText', 'backupButton', 'restoreButton', 'portInput', 'autoStartCore',
   'startMinimized', 'runAtLogin', 'includePrereleases', 'saveSettingsButton', 'pathsList',
   'logOutput', 'clearLogsButton', 'toast'
 ].map(id => [id, document.getElementById(id)]));
@@ -107,6 +107,12 @@ async function initialize() {
   elements.backupButton.addEventListener('click', async () => {
     const target = await action(elements.backupButton, () => window.manager.createBackup());
     showToast(`备份完成：${target}`);
+  });
+  elements.restoreButton.addEventListener('click', async () => {
+    const result = await action(elements.restoreButton, () => window.manager.restoreBackup());
+    if (!result) return;
+    showToast(`恢复完成；恢复前备份：${result.safetyBackup}`);
+    renderSnapshot(await window.manager.getSnapshot());
   });
 
   elements.saveSettingsButton.addEventListener('click', async () => {

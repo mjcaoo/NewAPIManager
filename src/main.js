@@ -164,6 +164,30 @@ function registerIpc() {
   });
 
   ipcMain.handle('backup:create', () => backupService.createBackup('manual'));
+  ipcMain.handle('backup:restore', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: '选择要恢复的备份目录',
+      defaultPath: paths.backupsDir,
+      properties: ['openDirectory']
+    });
+    if (result.canceled || !result.filePaths[0]) return null;
+    const confirmation = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      buttons: ['取消', '恢复'],
+      defaultId: 0,
+      cancelId: 0,
+      title: '确认恢复备份',
+      message: '恢复会替换当前数据与配置。',
+      detail: '管理器会先创建恢复前备份；如果核心重启失败，将尝试自动回滚。'
+    });
+    if (confirmation.response !== 1) return null;
+    const restored = await backupService.restoreBackup(result.filePaths[0]);
+    app.setLoginItemSettings({
+      openAtLogin: configStore.get().runManagerAtLogin,
+      openAsHidden: true
+    });
+    return restored;
+  });
   ipcMain.handle('update:check', () => updateService.check());
   ipcMain.handle('update:install', (_event, release) => updateService.install(release));
 }
@@ -175,7 +199,7 @@ async function initialize() {
   configStore = new ConfigStore(paths);
   configStore.load();
   coreManager = new CoreManager(paths, configStore);
-  backupService = new BackupService(paths, coreManager);
+  backupService = new BackupService(paths, coreManager, configStore);
   updateService = new UpdateService(paths, configStore, coreManager, backupService);
 
   coreManager.on('status', status => {

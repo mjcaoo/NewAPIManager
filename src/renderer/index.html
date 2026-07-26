@@ -50,9 +50,10 @@
 
       <section class="card">
         <div class="section-title"><h3>数据维护</h3></div>
-        <p class="muted">备份时会短暂停止核心，复制数据库与配置后自动恢复运行。</p>
+        <p class="muted">备份和恢复会短暂停止核心。恢复前会自动保留当前数据，失败时尝试回滚。</p>
         <div class="actions">
           <button id="backupButton">立即备份</button>
+          <button id="restoreButton">恢复备份</button>
           <button data-open="data">数据目录</button>
           <button data-open="backups">备份目录</button>
           <button data-open="logs">日志目录</button>

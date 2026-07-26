@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('manager', {
   saveConfig: patch => ipcRenderer.invoke('config:save', patch),
   setLoginItem: enabled => ipcRenderer.invoke('manager:set-login-item', enabled),
   createBackup: () => ipcRenderer.invoke('backup:create'),
+  restoreBackup: () => ipcRenderer.invoke('backup:restore'),
   checkUpdate: () => ipcRenderer.invoke('update:check'),
   installUpdate: release => ipcRenderer.invoke('update:install', release),
   onStatus: callback => ipcRenderer.on('core:status', (_event, status) => callback(status)),

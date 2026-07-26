@@ -25,6 +25,7 @@
 
 - Preserve the core state machine in `src/services/core-manager.js`: start checks the port, spawns hidden, captures logs, and waits for HTTP health; stop may fall back to Windows `taskkill.exe /T /F` because graceful Unix signals are unavailable.
 - Backups intentionally stop a running core, copy `data/` plus manager/env config, and restart it in `finally`.
+- Restores only accept directories under `backups/`, create a `before-restore` safety backup, replace data/config while stopped, reload manager config, and roll back if the restored core fails its health restart.
 - Upgrades intentionally stop the core, download to a `.part` file, optionally verify GitHub's SHA-256 digest, stage archives through PowerShell `Expand-Archive`, back up, preserve the old binary under `core/versions/`, replace atomically, and roll back if restart health checks fail. Keep this ordering when changing update behavior.
 - Upstream asset selection is Windows x64 only and prefers `.exe` over `.zip`; update `src/services/update-utils.js` and its tests together if release naming support changes.
 
