@@ -72,6 +72,17 @@ npm run dist:win
 
 安装新版本覆盖升级时，安装器会保留现有的 `config/`、`core/`、`data/`、`logs/`、`backups/` 和 `downloads/`。普通卸载仍会删除安装目录中的这些运行数据，请在卸载前按需备份。
 
+## 发布 GitHub Release
+
+先更新 `package.json` 与 `package-lock.json` 中的版本并提交，再推送匹配的 `vX.Y.Z` 标签：
+
+```powershell
+git tag v0.1.3
+git push origin v0.1.3
+```
+
+`.github/workflows/release.yml` 会在 Windows runner 上执行 `npm ci`、语法检查、测试和 `npm run dist:win`，然后发布安装包、Portable 版本、blockmap 与 `SHA256SUMS.txt`。标签版本与 `package.json` 不一致时发布会失败；包含连字符的标签会标记为预发布版本。
+
 ## 配置 New API 环境变量
 
 编辑 `config/new-api.env`，每行一个 `KEY=VALUE`。例如：

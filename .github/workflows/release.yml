@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verify release version
+        shell: pwsh
+        run: |
+          $packageVersion = node -p "require('./package.json').version"
+          $tagVersion = "${{ github.ref_name }}" -replace '^v', ''
+          if ($tagVersion -ne $packageVersion) {
+            throw "Tag version $tagVersion does not match package.json version $packageVersion."
+          }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check syntax
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build Windows artifacts
+        run: npm run dist:win
+
+      - name: Generate checksums
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          $files = @(
+            "dist/New API Manager-$version-x64.exe",
+            "dist/New API Manager-$version-Portable-x64.exe",
+            "dist/New API Manager-$version-x64.exe.blockmap"
+          )
+          $lines = foreach ($file in $files) {
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw "Missing release artifact: $file"
+            }
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant()
+            "$hash  $([IO.Path]::GetFileName($file))"
+          }
+          $lines | Set-Content -LiteralPath "dist/SHA256SUMS.txt" -Encoding ascii
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = node -p "require('./package.json').version"
+          $prerelease = if ("${{ github.ref_name }}" -match '-') { '--prerelease' } else { $null }
+          $arguments = @(
+            'release', 'create', "${{ github.ref_name }}",
+            "dist/New API Manager-$version-x64.exe",
+            "dist/New API Manager-$version-Portable-x64.exe",
+            "dist/New API Manager-$version-x64.exe.blockmap",
+            'dist/SHA256SUMS.txt',
+            '--title', "New API Manager ${{ github.ref_name }}",
+            '--generate-notes'
+          )
+          if ($prerelease) { $arguments += $prerelease }
+          gh @arguments
