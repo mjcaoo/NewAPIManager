@@ -8,6 +8,7 @@ const { ConfigStore } = require('./services/config-store');
 const { CoreManager } = require('./services/core-manager');
 const { BackupService } = require('./services/backup-service');
 const { UpdateService } = require('./services/update-service');
+const { detectCoreVersion } = require('./services/core-version');
 const { formatLocalIso } = require('./utils/time');
 
 app.disableHardwareAcceleration();
@@ -122,13 +123,15 @@ function registerIpc() {
       filters: [{ name: 'New API 可执行文件', extensions: ['exe'] }]
     });
     if (result.canceled || !result.filePaths[0]) return null;
+    const source = result.filePaths[0];
+    const detectedVersion = await detectCoreVersion(source);
     const wasRunning = ['running', 'starting'].includes(coreManager.getStatus().state);
     if (wasRunning) await coreManager.stop();
-    fs.copyFileSync(result.filePaths[0], paths.coreExe);
+    fs.copyFileSync(source, paths.coreExe);
     fs.writeFileSync(paths.versionFile, `${JSON.stringify({
-      tag: 'manual',
+      tag: detectedVersion || 'unknown',
       installedAt: formatLocalIso(),
-      source: result.filePaths[0]
+      source
     }, null, 2)}\n`, 'utf8');
     if (wasRunning) await coreManager.start();
     return coreManager.getStatus();
