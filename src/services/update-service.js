@@ -5,17 +5,19 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const https = require('https');
+const { Readable, Transform } = require('stream');
+const { pipeline } = require('stream/promises');
 const { selectWindowsAsset, compareVersions } = require('./update-utils');
 const { formatLocalIso } = require('../utils/time');
 
 class UpdateService extends EventEmitter {
-  constructor(paths, configStore, coreManager, backupService) {
+  constructor(paths, configStore, coreManager, backupService, fetch) {
     super();
     this.paths = paths;
     this.configStore = configStore;
     this.coreManager = coreManager;
     this.backupService = backupService;
+    this.fetch = fetch;
     this.latestRelease = null;
   }
 
@@ -142,75 +144,71 @@ class UpdateService extends EventEmitter {
     }
   }
 
-  getJson(url) {
-    return new Promise((resolve, reject) => {
-      const request = https.get(url, {
-        headers: {
-          'User-Agent': 'New-API-Manager',
-          'Accept': 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28'
-        }
-      }, response => {
-        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-          response.resume();
-          this.getJson(response.headers.location).then(resolve, reject);
-          return;
-        }
-        let body = '';
-        response.setEncoding('utf8');
-        response.on('data', chunk => { body += chunk; });
-        response.on('end', () => {
-          if (response.statusCode !== 200) {
-            reject(new Error(`GitHub API 请求失败：HTTP ${response.statusCode}`));
-            return;
-          }
-          try { resolve(JSON.parse(body)); } catch (error) { reject(error); }
-        });
-      });
-      request.setTimeout(20000, () => request.destroy(new Error('GitHub API 请求超时')));
-      request.once('error', reject);
+  async getJson(url) {
+    return this.fetchWithTimeout(url, {
+      headers: {
+        'User-Agent': 'New-API-Manager',
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      }
+    }, 20000, 'GitHub API 请求超时', response => {
+      if (!response.ok) throw new Error(`GitHub API 请求失败：HTTP ${response.status}`);
+      return response.json();
     });
   }
 
-  download(url, destination, onProgress, redirects = 0) {
-    if (redirects > 8) return Promise.reject(new Error('下载重定向次数过多。'));
-    return new Promise((resolve, reject) => {
-      const request = https.get(url, { headers: { 'User-Agent': 'New-API-Manager' } }, response => {
-        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-          response.resume();
-          this.download(response.headers.location, destination, onProgress, redirects + 1).then(resolve, reject);
-          return;
-        }
-        if (response.statusCode !== 200) {
-          response.resume();
-          reject(new Error(`下载失败：HTTP ${response.statusCode}`));
-          return;
-        }
-        const total = Number(response.headers['content-length'] || 0);
-        let received = 0;
-        const temp = `${destination}.part`;
-        const output = fs.createWriteStream(temp);
-        response.on('data', chunk => {
+  async download(url, destination, onProgress) {
+    const controller = new AbortController();
+    const temp = `${destination}.part`;
+    let received = 0;
+    let timer = null;
+    const refreshTimeout = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => controller.abort(), 60000);
+    };
+
+    try {
+      refreshTimeout();
+      const response = await this.fetch(url, {
+        headers: { 'User-Agent': 'New-API-Manager' },
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error(`下载失败：HTTP ${response.status}`);
+      if (!response.body) throw new Error('下载响应没有内容。');
+
+      const total = Number(response.headers.get('content-length') || 0);
+      const progress = new Transform({
+        transform(chunk, _encoding, callback) {
+          refreshTimeout();
           received += chunk.length;
           onProgress?.({ received, total, percent: total ? Math.round(received * 100 / total) : null });
-        });
-        response.pipe(output);
-        output.on('finish', () => {
-          output.close(() => {
-            fs.rmSync(destination, { force: true });
-            fs.renameSync(temp, destination);
-            resolve();
-          });
-        });
-        output.once('error', error => {
-          response.destroy();
-          fs.rmSync(temp, { force: true });
-          reject(error);
-        });
+          callback(null, chunk);
+        }
       });
-      request.setTimeout(60000, () => request.destroy(new Error('下载超时')));
-      request.once('error', reject);
-    });
+      await pipeline(Readable.fromWeb(response.body), progress, fs.createWriteStream(temp));
+      fs.rmSync(destination, { force: true });
+      fs.renameSync(temp, destination);
+    } catch (error) {
+      fs.rmSync(temp, { force: true });
+      if (controller.signal.aborted) throw new Error('下载超时');
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async fetchWithTimeout(url, options, timeoutMs, timeoutMessage, consume = response => response) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await this.fetch(url, { ...options, signal: controller.signal });
+      return await consume(response);
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error(timeoutMessage);
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   sha256(filePath) {

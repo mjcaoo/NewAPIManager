@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell, net } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getPaths, ensureDirectories, assertWritable } = require('./utils/paths');
@@ -207,7 +207,13 @@ async function initialize() {
   configStore.load();
   coreManager = new CoreManager(paths, configStore);
   backupService = new BackupService(paths, coreManager, configStore);
-  updateService = new UpdateService(paths, configStore, coreManager, backupService);
+  updateService = new UpdateService(
+    paths,
+    configStore,
+    coreManager,
+    backupService,
+    (url, options) => net.fetch(url, options)
+  );
 
   coreManager.on('status', status => {
     send('core:status', status);
